@@ -3,6 +3,7 @@ import torch
 from torchvision import transforms, datasets, models
 from torch import nn
 from torch import optim
+from collections import OrderedDict
 
 
 parser = argparse.ArgumentParser(description='Training a neural network on a given dataset')
@@ -28,10 +29,9 @@ gpu = False if args.gpu is None else True
 
 #defining function to load datas
 def load_data(path):
-    data_dir = 'flowers'
-    train_dir = data_dir + '/train'
-    valid_dir = data_dir + '/valid'
-    test_dir = data_dir + '/test'
+    train_dir = path + '/train'
+    valid_dir = path + '/valid'
+    test_dir = path + '/test'
 
     # TODO: Define your transforms for the training, validation, and testing sets
 
@@ -78,25 +78,22 @@ def build_network(architecture, hidden_units):
     elif architecture =='vgg13':
         model = models.vgg13(pretrained = True)
         input_units = 25088
-    elif architecture =='alexnet':
-        model = models.alexnet(pretrained = True)
-        input_units = 9216
+    elif architecture =='densenet':
+        model = models.densenet121(pretrained = True)
+        input_units = 1024
         
     for param in model.parameters():
         param.requires_grad = False
-        
-    classifier = nn.Sequential(
-          nn.Linear(25088, 512),
-          nn.ReLU(),
-          nn.Dropout(p=0.2),
-          nn.Linear(512, 256),
-          nn.ReLU(),
-          nn.Dropout(p=0.2),
-          nn.Linear(256, 102),
-          nn.LogSoftmax(dim = 1)
-        )
+    
+    classifier = nn.Sequential(OrderedDict([('fc1', nn.Linear(input_units, hidden_units)),
+                                            ('relu', nn.ReLU()),
+                                            ('dropout1',nn.Dropout(0.2)),
+                                            ('fc2', nn.Linear(hidden_units, 102)),
+                                            ('output', nn.LogSoftmax(dim=1))]))
 
     model.classifier = classifier
+    
+    print("Finished building network.")
     
     return model
     
